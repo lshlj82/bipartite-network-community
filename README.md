@@ -9,12 +9,6 @@ The demo reproduces the model-network experiments (Figs. 2–4) and the language
 
 *Created by Claude Opus 5.5 (Anthropic).*
 
-## Usage
-
-Open `bipartite-null-models.html` in any modern browser. There is no build step or server, and nothing to install. The page loads web fonts from Google Fonts, and everything else, including the language–country data, is in the one file.
-
-To host it on GitHub Pages, commit the file (renamed to `index.html` if you like) and enable Pages for the repository.
-
 ## What the demo does
 
 1. **Builds a bipartite network with planted communities.** Three presets follow the paper:
