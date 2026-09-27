@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Null models for bipartite community detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F2; --surface:#FFFFFF; --ink:#1A2330; --muted:#5A6573; --rule:#C9D0D7;
+  --omega:#8B3FB5; --nc:#10917B; --c0:#DE7619; --c1:#3A9434; --band:rgba(16,145,123,.11);
+  --edge:26,35,48; --focus:#2F6FD6;
+  --serif:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans:"Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141A20; --surface:#1C232B; --ink:#E3E7EB; --muted:#9BA6B2; --rule:#34404B;
+    --omega:#C58AEB; --nc:#3DC9AE; --c0:#F2933C; --c1:#66BC5D; --band:rgba(61,201,174,.13);
+    --edge:220,228,236; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141A20; --surface:#1C232B; --ink:#E3E7EB; --muted:#9BA6B2; --rule:#34404B;
+  --omega:#C58AEB; --nc:#3DC9AE; --c0:#F2933C; --c1:#66BC5D; --band:rgba(61,201,174,.13);
+  --edge:220,228,236; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 56px}
+header h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4.2vw,44px);line-height:1.1;margin:0 0 14px;max-width:22ch;letter-spacing:-.01em}
+header p{font-family:var(--serif);font-size:17px;line-height:1.6;max-width:68ch;margin:0 0 10px;color:var(--ink)}
+header .src{font-family:var(--sans);font-size:13px;color:var(--muted)}
+em.v{font-family:var(--serif);font-style:italic}
+
+.controls{margin-top:26px;background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 22px;align-items:end}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.ctl label b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--nc)}
+input[type=number]{width:100%;font:inherit;padding:5px 8px;border:1px solid var(--rule);border-radius:6px;background:var(--bg);color:var(--ink)}
+.presets{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.presets span{font-size:13px;color:var(--muted);margin-right:4px}
+.pbtn{font:inherit;font-size:14px;padding:6px 12px;border-radius:999px;border:1px solid var(--rule);background:transparent;color:var(--ink);cursor:pointer}
+.pbtn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.controls.real .syn{display:none}
+body.real .net{aspect-ratio:560/560}
+.members{font-size:12.5px;color:var(--muted);margin:-4px 0 10px;min-height:1em}
+.members div{margin-bottom:3px;overflow-wrap:anywhere}
+.members b{color:var(--ink);font-weight:600}
+.pdesc{font-size:13px;color:var(--muted);flex-basis:100%;margin-top:2px}
+.runrow{grid-column:1/-1;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.run{font:inherit;font-weight:600;padding:9px 18px;border-radius:8px;border:0;background:var(--nc);color:#fff;cursor:pointer}
+.run.stale{box-shadow:0 0 0 3px var(--band)}
+.prog{flex:1;min-width:160px;height:6px;background:var(--rule);border-radius:3px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--nc);transition:width .15s}
+.status{font-size:13px;color:var(--muted);min-width:180px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+.verdict{font-family:var(--serif);font-size:19px;line-height:1.5;margin:28px 0 8px;max-width:70ch;min-height:1.5em}
+.scrub{display:flex;align-items:center;gap:14px;margin:6px 0 14px;flex-wrap:wrap}
+.scrub label{font-size:14px;color:var(--muted)}
+.scrub input{flex:1;min-width:200px}
+.scrub output{font-variant-numeric:tabular-nums;font-weight:600;min-width:74px}
+
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 16px 12px;min-width:0}
+.panel h2{font-family:var(--serif);font-weight:600;font-size:21px;margin:0}
+.panel .eq{font-family:var(--serif);font-size:15px;color:var(--muted);margin:2px 0 10px}
+.net{width:100%;aspect-ratio:560/340;display:block;border-radius:6px}
+.netcap{font-size:13px;color:var(--muted);margin:4px 0 10px;min-height:1.4em}
+.chart{width:100%;display:block;cursor:crosshair;touch-action:none}
+.chart text{font-family:var(--sans);font-size:12px;fill:var(--muted)}
+.stats{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13.5px;margin-top:6px}
+.stats dt{color:var(--muted)} .stats dd{margin:0;font-variant-numeric:tabular-nums}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);margin:14px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:11px;height:11px;border-radius:50%;display:inline-block}
+.sq{border-radius:1px}
+
+.explain{margin-top:44px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:36px;align-items:start}
+.explain h3{font-family:var(--serif);font-weight:600;font-size:22px;margin:0 0 8px}
+.explain p{font-family:var(--serif);font-size:16px;line-height:1.65;max-width:66ch;margin:0 0 14px}
+.explain .math{font-family:var(--serif);font-style:italic}
+.mfig{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px}
+.mfig svg{width:100%;height:auto;display:block}
+.mfig svg text{font-family:var(--sans);font-size:12px;fill:var(--muted)}
+.mfig figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+
+.refs{margin-top:40px;border-top:1px solid var(--rule);padding-top:18px;font-size:13.5px;color:var(--muted)}
+.refs h3{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--ink);margin:0 0 8px}
+.refs ol{margin:0;padding-left:1.4em;max-width:90ch}.refs li{margin-bottom:4px}
+.refs a{color:var(--nc)}
+.credit{margin:16px 0 0}
+@media (max-width:820px){
+  .pair,.explain{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){.prog i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Which null model should a bipartite network use?</h1>
+  <p>Modularity rewards edges inside communities relative to what a null model expects. The standard Newman–Girvan (NG) term expects edges between any pair of nodes, including same-type pairs that a bipartite network can never contain. Barber’s (BB) term only expects edges across the two node types. This demo runs a stochastic Louvain search many times at each resolution <em class="v">γ</em>, on bipartite networks with planted communities and on a real network of languages and the countries where they are spoken, and measures how consistently each null model finds communities.</p>
+  <p class="src">Reproduces the model-network experiments and the language–country example in S. H. Lee, “Refinement for community structures of bipartite networks,” J. Korean Phys. Soc. 79, 1190 (2021). The bipartite null model is from M. J. Barber, “Modularity and community detection in bipartite networks,” Phys. Rev. E 76, 066102 (2007). Language data from the KONECT Unicode languages network.</p>
+</header>
+
+<section class="controls" aria-label="Experiment settings">
+  <div class="presets" role="group" aria-label="Model network">
+    <span>Model network</span>
+    <button class="pbtn" data-p="3vs3" aria-pressed="true">3 vs 3</button>
+    <button class="pbtn" data-p="3vs2" aria-pressed="false">3 vs 2</button>
+    <button class="pbtn" data-p="bigsmall" aria-pressed="false">3 vs 2, big–small</button>
+    <span style="margin-left:10px">Real network</span>
+    <button class="pbtn" data-p="lang" aria-pressed="false">Languages and countries</button>
+    <div class="pdesc" id="pdesc"></div>
+  </div>
+  <div class="ctl syn"><label for="pin">Planted-pair density <em class="v">p</em><sub>in</sub> <b id="pinv"></b></label><input id="pin" type="range" min="0.02" max="0.3" step="0.01" value="0.1"></div>
+  <div class="ctl syn"><label for="pout">Cross density <em class="v">p</em><sub>out</sub> <b id="poutv"></b></label><input id="pout" type="range" min="0" max="0.1" step="0.005" value="0.02"></div>
+  <div class="ctl syn"><label for="pmid">Middle-group density <em class="v">p</em><sub>mid</sub> <b id="pmidv"></b></label><input id="pmid" type="range" min="0" max="0.2" step="0.01" value="0.06"></div>
+  <div class="ctl syn"><label for="gsize">Nodes per group <b id="gsizev"></b></label><input id="gsize" type="range" min="30" max="150" step="10" value="100"></div>
+  <div class="ctl"><label for="runs">Louvain runs per <em class="v">γ</em> <b id="runsv"></b></label><input id="runs" type="range" min="4" max="40" step="2" value="16"></div>
+  <div class="ctl"><label for="gmin">Lowest <em class="v">γ</em></label><input id="gmin" type="number" min="0.05" max="3" step="0.05" value="0.3"></div>
+  <div class="ctl"><label for="gmax">Highest <em class="v">γ</em></label><input id="gmax" type="number" min="0.1" max="10" step="0.05" value="1.0"></div>
+  <div class="ctl syn"><label for="seed">Network seed</label><input id="seed" type="number" min="1" max="99999" step="1" value="7"></div>
+  <div class="runrow">
+    <button class="run" id="run">Run sweep</button>
+    <div class="prog" aria-hidden="true"><i id="bar"></i></div>
+    <div class="status" id="status" aria-live="polite"></div>
+  </div>
+</section>
+
+<p class="verdict" id="verdict" aria-live="polite"></p>
+
+<div class="scrub">
+  <label for="gsel">Inspect partitions at</label>
+  <input id="gsel" type="range" min="0" max="35" step="1" value="17">
+  <output id="gselv" for="gsel"></output>
+</div>
+
+<div class="pair">
+  <section class="panel" aria-labelledby="h-ng">
+    <h2 id="h-ng">Newman–Girvan null model</h2>
+    <div class="eq"><i>P</i><sub>ij</sub> = <i>k</i><sub>i</sub><i>k</i><sub>j</sub> / 2<i>m</i> for every pair</div>
+    <canvas class="net" id="net-ng" aria-label="Network coloured by most likely NG partition"></canvas>
+    <div class="netcap" id="cap-ng"></div>
+    <div class="members" id="mem-ng"></div>
+    <svg class="chart" id="chart-ng" viewBox="0 0 560 300" role="img" aria-label="Partition inconsistency and community count against gamma, NG"></svg>
+    <dl class="stats" id="stats-ng"></dl>
+  </section>
+  <section class="panel" aria-labelledby="h-bb">
+    <h2 id="h-bb">Barber (bipartite) null model <sup style="font-size:13px;font-weight:400">[2]</sup></h2>
+    <div class="eq"><i>P</i><sub>ij</sub> = <i>k</i><sub>i</sub><i>k</i><sub>j</sub> / <i>m</i> across types, 0 within a type</div>
+    <canvas class="net" id="net-bb" aria-label="Network coloured by most likely BB partition"></canvas>
+    <div class="netcap" id="cap-bb"></div>
+    <div class="members" id="mem-bb"></div>
+    <svg class="chart" id="chart-bb" viewBox="0 0 560 300" role="img" aria-label="Partition inconsistency and community count against gamma, BB"></svg>
+    <dl class="stats" id="stats-bb"></dl>
+  </section>
+</div>
+
+<div class="legend">
+  <span><svg width="12" height="12"><rect x="1.5" y="1.5" width="9" height="9" fill="none" stroke="var(--omega)" stroke-width="1.6"/></svg>Partition inconsistency Ω (left axis)</span>
+  <span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="none" stroke="var(--nc)" stroke-width="1.6"/></svg>Average number of communities (right axis)</span>
+  <span><svg width="22" height="12"><rect width="22" height="12" fill="var(--band)"/></svg><span id="bandlbl">γ window where ≥ 90% of runs find the planted 2 communities</span></span>
+  <span>Node size grows with how often a node switches community across runs</span>
+</div>
+
+<section class="explain">
+  <div>
+    <h3>What the experiment measures</h3>
+    <p>Each network has two node types (circles and squares) split into vertically stacked groups. The top and bottom groups of opposite types are densely linked, forming the two planted communities. A middle group links evenly to everything, so its nodes have no true home and should look unstable.</p>
+    <p>At every <span class="math">γ</span> the Louvain search runs repeatedly from a random node order. Identical runs give <span class="math">Ω = 1</span>; <span class="math">C</span> equally likely, unrelated partitions give <span class="math">Ω = C</span>. Similarity between partitions uses element-centric similarity, whose personalised-PageRank form has a closed form for clique-induced graphs, so it is computed exactly here.</p>
+    <p>In the language–country network there is no ground truth, so the shaded band marks the longest stretch of <span class="math">γ</span> with <span class="math">Ω ≤ 1.02</span>. Look near <span class="math">γ ≈ 4</span>: with the bipartite null model the community count jumps from about 90 to about 130 and then holds steady at low inconsistency, while Newman–Girvan climbs gradually, as in Fig. 5 of the paper.</p>
+    <p>Both null models can find the planted split if you pick <span class="math">γ</span> carefully. The paper’s point is that the bipartite-aware term holds that split over a wider range of <span class="math">γ</span>, so the result depends less on a knob you would have to guess on real data. Try raising <span class="math">p</span><sub>mid</sub> or lowering <span class="math">p</span><sub>in</sub> to see where each model breaks.</p>
+    <p style="font-family:var(--sans);font-size:13px;color:var(--muted)">Notes: the BB term uses Barber’s normalisation, <i>k</i><sub>i</sub><i>k</i><sub>j</sub>/<i>m</i> on cross-type pairs, so both null models expect the same total number of edges and their γ axes line up, as in the paper’s figures. Louvain here is a plain JavaScript implementation, not GenLouvain, so exact γ positions differ slightly from the published figures. The language–country network is weighted by the share of each country’s population using each language; its 149 zero-weight edges carry no weight, so they are left out, which does not change modularity. The paper’s disease–gene and ecological networks are not included.</p>
+  </div>
+  <figure class="mfig" style="margin:0">
+    <svg viewBox="0 0 420 230" aria-label="Block structure of the two null-model matrices">
+      <g transform="translate(40,34)">
+        <text x="70" y="-12" text-anchor="middle" style="fill:var(--ink);font-weight:600">NG expects</text>
+        <rect x="0" y="0" width="70" height="70" fill="var(--omega)" opacity=".30"/>
+        <rect x="70" y="0" width="70" height="70" fill="var(--nc)" opacity=".55"/>
+        <rect x="0" y="70" width="70" height="70" fill="var(--nc)" opacity=".55"/>
+        <rect x="70" y="70" width="70" height="70" fill="var(--omega)" opacity=".30"/>
+        <rect x="0" y="0" width="140" height="140" fill="none" stroke="var(--ink)" stroke-width="1"/>
+        <text x="35" y="39" text-anchor="middle" style="fill:var(--ink)">○–○</text>
+        <text x="105" y="39" text-anchor="middle" style="fill:var(--ink)">○–□</text>
+        <text x="35" y="109" text-anchor="middle" style="fill:var(--ink)">□–○</text>
+        <text x="105" y="109" text-anchor="middle" style="fill:var(--ink)">□–□</text>
+      </g>
+      <g transform="translate(240,34)">
+        <text x="70" y="-12" text-anchor="middle" style="fill:var(--ink);font-weight:600">BB expects</text>
+        <rect x="70" y="0" width="70" height="70" fill="var(--nc)" opacity=".55"/>
+        <rect x="0" y="70" width="70" height="70" fill="var(--nc)" opacity=".55"/>
+        <rect x="0" y="0" width="140" height="140" fill="none" stroke="var(--ink)" stroke-width="1"/>
+        <text x="35" y="39" text-anchor="middle">0</text>
+        <text x="105" y="39" text-anchor="middle" style="fill:var(--ink)">○–□</text>
+        <text x="35" y="109" text-anchor="middle" style="fill:var(--ink)">□–○</text>
+        <text x="105" y="109" text-anchor="middle">0</text>
+      </g>
+      <text x="210" y="208" text-anchor="middle">Purple: expected edges that cannot exist in a bipartite network</text>
+    </svg>
+    <figcaption>The NG term spends part of its “expected edges” budget on same-type pairs. Those phantom edges subtract from modularity everywhere and blur the penalty that separates real communities. BB puts the whole budget on the cross-type blocks, equivalent to Fig. 1d of the paper.</figcaption>
+  </figure>
+</section>
+
+<footer class="refs">
+  <h3>References</h3>
+  <ol>
+    <li>S. H. Lee, “Refinement for community structures of bipartite networks,” <i>J. Korean Phys. Soc.</i> <b>79</b>, 1190 (2021). <a href="https://doi.org/10.1007/s40042-021-00352-3">doi:10.1007/s40042-021-00352-3</a></li>
+    <li>M. J. Barber, “Modularity and community detection in bipartite networks,” <i>Phys. Rev. E</i> <b>76</b>, 066102 (2007). <a href="https://doi.org/10.1103/PhysRevE.76.066102">doi:10.1103/PhysRevE.76.066102</a></li>
+    <li>M. E. J. Newman and M. Girvan, “Finding and evaluating community structure in networks,” <i>Phys. Rev. E</i> <b>69</b>, 026113 (2004).</li>
+    <li>D. Lee, S. H. Lee, B. J. Kim, and H. Kim, “Consistency landscape of network communities,” <i>Phys. Rev. E</i> <b>103</b>, 052306 (2021).</li>
+    <li>A. J. Gates, I. B. Wood, W. P. Hetrick, and Y.-Y. Ahn, “Element-centric clustering comparison unifies overlaps and hierarchy,” <i>Sci. Rep.</i> <b>9</b>, 8574 (2019).</li>
+    <li>J. Kunegis, Unicode languages network dataset, KONECT (2016). <a href="http://konect.cc/networks/unicodelang/">konect.cc/networks/unicodelang</a>. Source data: Unicode CLDR territory–language information.</li>
+  </ol>
+  <p class="credit">Created by Claude Opus 5.5 (Anthropic).</p>
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ---------- model networks ---------- */
+const PRESETS={
+  "3vs3":{desc:"Three groups per side. Top and bottom groups pair up across types; the middle groups link evenly to all opposite-type nodes.",
+    build:(s,p)=>({L:[s,s,s],R:[s,s,s],P:[[p.in,p.mid,p.out],[p.mid,p.mid,p.mid],[p.out,p.mid,p.in]],plantL:[0,-1,1],plantR:[0,-1,1]})},
+  "3vs2":{desc:"Three circle groups, two square groups. The middle circles link equally to both square groups, so they belong to neither community.",
+    build:(s,p)=>{const r=Math.round(1.5*s);return{L:[s,s,s],R:[r,r],P:[[p.in,p.out],[p.mid,p.mid],[p.out,p.in]],plantL:[0,-1,1],plantR:[0,1]};}},
+  "bigsmall":{desc:"Like 3 vs 2, but the middle circles lean toward the lower square group (p_mid) over the upper one (p_out), giving one small and one large community.",
+    build:(s,p)=>{const r=Math.round(1.5*s);return{L:[s,s,s],R:[r,r],P:[[p.in,p.out],[p.out,p.mid],[p.out,p.in]],plantL:[0,1,1],plantR:[0,1]};}}
+};
+PRESETS.lang={real:true,desc:"254 countries and 614 languages; each edge is weighted by the share of a country’s population that reads and writes the language (KONECT, from Unicode CLDR). There are no planted communities."};
+const REAL={"c":"AF AX AL DZ AS AD AO AI AG AR AM AW AC AU AT AZ BS BH BD BB BY BE BZ BJ BM BT BO BA BW BR IO VG BN BG BF BI KH CM CA IC CV BQ KY CF EA TD CL CN CX CP CC CO KM CG CD CK CR CI HR CU CW CY CZ DK DG DJ DM DO EC EG SV GQ ER EE ET FK FO FJ FI FR GF PF TF GA GM GE DE GH GI GR GL GD GP GU GT GG GN GW GY HT HM HN HK HU IS IN ID IR IQ IE IM IL IT JM JP JE JO KZ KE KI XK KW KG LA LV LB LS LR LY LI LT LU MO MK MG MW MY MV ML MT MH MQ MR MU YT MX FM MD MC MN ME MS MA MZ MM NA NR NP NL NC NZ NI NE NG NU NF KP MP NO OM PK PW PS PA PG PY PE PH PN PL PT PR QA RE RO RU RW WS SM ST SA SN RS SC SL SG SX SK SI SB SO ZA GS KR SS ES LK BL SH KN LC MF PM VC SD SR SJ SZ SE CH SY TW TJ TZ TH TL TG TK TO TT TA TN TR TM TC TV UM VI UG UA AE GB US UY UZ VU VA VE VN WF EH YE ZM ZW","l":"fa ps haz uz tk prd bal ug kk sv sq el mk arq ar fr kab en sm ca es pt umb kmb ln cy gn hy ku az nl pap zh it wbp de bar hr sl hu tly ttt tkr ml bn rkt syl ccp my grt mni be ru vls wa fon yo dz ne tsj lep qu ay aro bs sr tn af ja ko kgp gub yrl xav ms bg tr mos dyu rn sw km cja kdt bum ff ewo ybb nnh bbj bkm bax bas byv mua maf bfd kkj dua mgo jgo ksf ha agq nmg yav pdt crk cr yi iu moe crj atj crl csw crm ikt moh dgr den scs nsk chp gwi kea sg arn wuu hsn hak nan gan ii za mn bo lis ky nxq tdd lcp vi lzh und guc zdj lua swc lu kg lol rw bci sef dnj kfo bqv cs pl da kl jut aa so qug arz fan bvb ti tig ssy byn et vro am om sid wal fo hi hif fj rtm fi rmf se sms oc pcd gsw br co frp ia gcr ty puu man ka xmf os ab nds vmf ksh hsb frr dsb frs stq pfl ak ee abr gur ada gaa nzi saf pnt tsd ch quc sus nqo kpe ht ro sk is te mr ta ur gu kn or pa bho awa as mwr mag bgc hne dcc bjj sat wtm ks kok gom swv lmn gbm sd gon kfy kru wbq xnr wbr brx noe bhb raj hoc mtr unr bhi hoj kha kfr unx bfy srx saz njo ria bpy bft bra lif lah sa kht dv id jv su mad min bew ban bug bjn ace sas mak ljp rej gor nij kge aoz kvr lbw gay rob sxn sly mwv azb mzn glk ckb lrc rmt bqi luz lki gbz syr ga gv he lad sc vec nap lij scn sdc fur egl lmo pms rgn jam ryu ki luy luo kln guz mer mas ebu dav teo pko saq gil aln lo kjg lv ltg st zu ss xh vai men wae lt sgs lb mg ny tum tog iba zmi dtp ffm snk mwk ses tmh bm khq dtm kao bmq bze mt mh wo mfe swb buc yua nhe nhw maz nch sei chk pon kos yap uli uk gag ary zgh tzm shi rif vmw ndc ts ngl seh mgh rng yao shn kac mnw kj ng naq hz na mai new jml taj thl bap tdg thr mgp thq mrd xsr rjs tsf ggn gvr tkt tdh li fy gos zea mi dje fuq twq pcm ig fuv tiv ibb bin kaj kcg cch amo niu nb nn skr brh hno hnd tg gju kvx khw mvy kxp gjk btv pau tpi ho fil ceb ilo hil bik war pam pag mdh tsg cps krj bto hnn tbw bku szl csb sli gl rcf tt cv ba ce av udm chm sah myv kbd dar bua mdf kum lez kv krc tyv ady krl lbe koi mrj alt vep izh vot eo srr dyo crs kri tem vic rug nso ve nr eu ast ext si nus srn fit rmu smj sma rm rmo trv suk nym kde ksb mgy asa lag vun rwk sbp th tts nod sou mfa kxm lwl tet tkl to aeb zza bgx kiu tru tvl lg nyn cgg xog laj ach myx ttj rue sco gd kw nv pdc haw frc chr esu dak cho lkt ik mus kaa bi la cjm wls fud bem loz sn nd mxc kck","e":"30,17,1;220,27,0.018;37,86,0.031;214,14,0.61;185,517,0.002;179,498,0.001;46,20,0.98;79,30,0.001;123,355,0.69;54,148,0.09;78,185,0.001;242,481,0.004;58,17,0.49;67,17,0.001;74,177,0.035;37,89,0.014;197,39,0.11;233,4,0.7;184,39,0.066;135,360,0.003;29,68,0.002;56,20,0.95;223,559,0.009;145,396,0.003;105,271,0.001;42,17,0.98;157,436,0.01;131,35,0.63;135,370,0.63;246,33,0.98;218,546,0.006;239,75,0.005;37,94,0.01;93,17,0.91;223,557,0.014;253,17,0.42;224,565,0.096;85,199,0.86;184,76,0.001;124,52,0.38;242,33,0.003;185,502,0.014;118,176,0.005;177,485,0.03;105,239,0.023;103,17,0.2;81,32,0.078;244,52,0.14;68,61,0.17;212,15,0.89;232,511,0.008;149,52,0.001;106,310,0.001;118,80,0.66;232,27,0.001;185,27,0.008;177,488,0.014;37,99,0.005;164,17,0.95;146,403,0.028;111,14,0.2;10,28,0.033;170,17,0.5;251,17,0.09;105,248,0.006;157,429,0.032;105,249,0.005;107,1,0.002;204,14,0.27;153,414,0.068;106,297,0.014;105,260,0.002;181,17,0.49;163,14,0.001;105,256,0.003;153,411,0.13;118,351,0.007;168,465,0.25;205,17,0.24;192,65,0.99;79,193,0.001;162,450,0.17;112,330,0.01;248,32,0.01;183,501,0.71;9,25,0.001;179,159,0.96;163,454,0.13;238,585,0.029;177,481,0.6;163,456,0.016;147,75,0.094;89,11,0.99;150,10,0.079;154,421,0.015;253,611,0.12;3,17,0.07;187,18,1;214,102,0.014;171,17,0.089;106,299,0.007;47,128,0.06;14,39,0.003;157,442,0.003;105,267,0.001;95,17,1;37,92,0.012;125,14,0.86;106,291,0.063;38,107,0.001;91,17,0.96;16,17,1;231,14,0.9;118,347,0.016;103,228,0.01;218,9,0.95;201,67,0.13;87,212,0.39;170,471,0.002;18,48,0.002;36,83,0.001;170,472,0.002;240,1,0.029;111,52,0.11;61,27,0.002;144,391,0.88;72,169,0.6;25,59,0.15;177,490,0.011;8,17,0.86;193,532,0.98;152,406,0.87;11,17,0.027;142,14,0.85;136,233,0.042;177,493,0.003;224,567,0.05;201,360,0.24;205,20,0.99;185,515,0.002;157,17,0.03;147,404,0.14;135,371,0.084;138,379,0.034;145,394,0.004;41,30,0.08;224,419,0.001;138,376,0.077;192,229,0.008;68,20,0.96;89,17,0.51;185,504,0.013;112,17,0.34;74,175,0.33;200,80,0.02;83,197,0.09;122,52,0.36;69,17,0.35;218,184,0.022;107,318,0.019;20,52,0.12;138,385,0.009;37,96,0.006;199,17,1;107,29,0.24;108,0,0.009;87,216,0.03;221,32,0.95;4,17,0.97;2,11,0.019;107,27,0.002;185,520,0.001;192,37,0.009;106,293,0.021;86,37,0.008;24,17,0.92;201,361,0.027;119,17,1;111,175,0.006;23,55,0.25;215,545,0.68;228,572,0.95;65,163,0.42;186,17,0.15;89,76,0.012;21,54,0.058;105,242,0.012;86,76,0.025;242,15,0.006;206,543,0.68;157,430,0.03;27,65,0.1;105,231,0.072;13,33,0.019;152,20,0.001;108,17,0.35;17,14,0.87;129,365,0.035;71,168,0.079;7,17,0.95;133,76,0.035;6,24,0.007;194,534,0.26;124,358,0.089;3,14,0.74;219,35,0.73;130,52,0.08;216,52,0.64;118,17,0.19;25,58,0.17;182,43,0.003;163,459,0.002;158,203,0.008;77,180,0.44;105,254,0.003;192,39,0.048;240,6,0.023;107,315,0.046;184,35,0.002;232,199,0.001;179,404,0.004;106,74,0.046;86,160,0.02;0,2,0.059;163,458,0.007;61,17,0.73;153,21,0.27;149,32,0.014;146,17,0.57;220,323,0.001;52,146,0.37;54,150,0.015;206,17,0.1;152,408,0.098;201,537,0.094;181,20,0.87;188,529,0.009;224,17,0.27;43,15,0.49;111,159,0.015;102,17,0.51;81,15,0.61;168,186,0.033;106,301,0.005;232,575,0.005;107,313,0.24;157,444,0.001;132,21,0.05;184,228,0.9;150,65,1;97,21,1;71,167,0.51;160,449,0.025;12,17,0.99;153,416,0.045;57,156,0.002;177,484,0.084;201,17,0.31;223,347,0.015;29,33,0.003;106,288,0.64;232,17,0.17;157,439,0.004;127,226,0.14;105,270,0.001;214,17,0.61;205,540,0.02;41,31,0.81;76,179,0.95;219,33,0.043;155,422,0.35;106,303,0.004;162,15,0.29;144,80,0.014;113,17,0.98;47,135,0.003;99,15,0.047;146,400,0.23;107,321,0.008;241,238,0.008;180,17,0.27;232,75,0.004;215,32,0.012;84,17,0.4;228,17,0.28;190,14,1;191,15,0.39;37,101,0.003;26,61,0.32;177,491,0.007;61,11,0.75;146,402,0.062;54,15,0.038;5,20,0.43;220,28,0.08;175,20,0.032;205,500,0.07;191,389,0.7;155,17,0.07;55,17,0.95;185,506,0.004;138,15,0.46;163,460,0.001;0,6,0.007;33,75,1;167,17,0.97;93,222,0.22;47,132,0.017;80,195,0.26;112,332,0.008;96,85,0.26;58,37,0.99;233,52,0.12;242,17,0.96;105,252,0.003;177,32,0.007;29,21,0.91;253,370,0.019;192,228,0.021;129,35,1;111,228,0.037;15,41,0.002;37,14,0.004;217,360,0.068;79,190,0.009;185,508,0.004;107,317,0.021;69,11,0.001;157,432,0.015;199,536,0.016;137,287,0.94;223,555,0.024;38,33,0.02;87,215,0.035;157,180,0.004;169,0,0.009;114,68,0.95;47,69,0.002;241,588,0.027;224,563,0.8;209,17,0.98;125,17,0.4;31,17,0.98;186,152,0.77;237,17,0.75;235,578,0.92;37,87,0.016;173,20,0.69;81,196,0.31;174,479,0.71;96,226,0.038;105,233,0.059;18,44,0.98;195,74,0.14;170,475,0.001;138,380,0.021;143,15,0.03;111,326,1;147,52,0.03;107,6,0.02;118,352,0.005;222,52,0.12;52,15,0.56;6,21,0.67;252,370,0.15;227,571,1;108,14,0.68;8,21,0.018;78,52,0.008;105,243,0.012;188,33,0.89;192,10,0.19;28,17,0.81;229,17,0.88;161,20,0.78;219,190,0.12;54,147,0.096;241,33,0.003;118,341,0.17;65,14,0.073;170,467,0.013;238,582,0.053;238,80,0.75;223,562,0.002;105,44,0.081;242,20,0.096;170,234,0.95;69,166,0.64;126,359,0.98;52,14,0.66;185,29,0.001;123,356,0.058;219,17,0.61;122,138,0.48;73,173,0.71;32,74,0.93;138,378,0.05;72,171,0.036;37,17,0.38;136,373,0.025;108,316,0.2;86,205,0.003;105,237,0.032;96,198,0.23;78,9,0.057;4,18,0.99;123,83,0.01;241,589,0.001;120,354,0.74;14,36,0.95;79,188,0.03;153,417,0.034;152,410,0.049;200,14,0.34;244,602,0.016;85,52,0.09;62,158,0.98;106,305,0.003;0,0,0.5;157,239,0.068;57,154,0.043;204,17,0.27;111,169,0.001;155,424,0.092;185,512,0.003;125,27,0.052;157,283,0.011;103,37,0.003;184,65,0.001;96,15,0.29;185,522,0.001;144,392,0.23;62,17,0.27;109,17,0.98;112,334,0.001;105,250,0.004;115,17,0.95;118,343,0.098;106,307,0.001;232,14,0.006;77,181,0.41;246,604,0.98;108,323,0.005;37,97,0.005;54,24,0.031;47,8,0.001;28,66,0.62;232,576,0.002;34,15,0.22;86,52,0.06;5,15,0.068;117,7,0.02;239,39,0.004;198,39,0.005;162,102,0.41;157,441,0.0042;127,17,0.83;158,446,0.043;224,421,0.002;219,15,0.21;105,246,0.01;177,489,0.012;114,69,0.005;103,39,1;239,52,0.46;250,14,1;63,160,0.93;106,296,0.015;249,607,0.31;3,13,0.83;69,14,0.94;72,14,0.049;169,6,0.049;183,233,0.15;243,20,0.88;87,218,0.01;15,28,0.002;157,435,0.011;111,43,0.001;47,130,0.023;18,17,0.18;101,20,0.78;107,5,0.005;191,531,0.026;131,368,0.67;117,17,0.15;206,233,0.15;225,570,0.59;160,17,0.98;78,173,0.001;170,238,0.7;46,17,0.095;238,580,0.063;136,375,0.006;103,229,0.001;232,29,0.007;172,14,1;138,383,0.011;223,560,0.008;126,17,0.27;112,38,0.002;34,78,0.32;245,603,0.9;235,17,0.099;185,510,0.003;111,39,0.01;72,17,0.59;37,15,0.68;241,25,0.008;79,192,0.006;140,17,0.93;106,309,0.001;21,35,0.014;105,235,0.045;239,228,0.005;0,4,0.017;74,169,0.06;96,224,0.11;45,15,0.26;132,32,0.98;241,17,0.99;154,420,0.017;37,103,0.001;86,28,0.007;38,106,0.002;85,200,0.11;143,233,0.025;177,482,0.24;18,46,0.05;238,586,0.019;244,3,0.85;219,551,0.003;156,426,0.73;10,27,0.98;185,52,0.94;105,265,0.001;126,361,0.024;170,469,0.004;201,539,0.016;89,12,0.016;86,203,0.12;35,15,0.59;205,542,0.005;152,17,0.14;22,20,0.28;118,345,0.049;74,178,0.018;37,85,0.036;26,26,0.004;105,272,0.001;170,6,0.037;13,17,0.96;170,256,0.12;6,23,0.25;71,15,0.088;105,263,0.001;208,17,0.69;191,85,0.21;238,350,0.039;18,47,0.002;118,350,0.007;111,327,0.013;106,311,0.001;194,17,0.35;168,464,1;196,30,0.04;105,257,0.002;70,20,0.89;74,163,0.014;217,361,0.58;77,183,0.003;165,17,0.76;38,15,0.22;86,30,0.09;21,17,0.59;106,300,0.007;162,451,0.07;51,20,0.93;106,298,0.01;232,574,0.014;0,3,0.047;138,382,0.017;193,15,0.6;145,397,0.002;3,15,0.2;187,17,0.022;153,412,0.099;107,199,0.001;112,329,0.013;3,16,0.078;1,9,0.99;126,362,0.01;248,605,0.001;226,15,0.61;47,136,0.002;170,470,0.003;86,159,0.003;106,292,0.03;155,66,0.003;185,201,0.003;185,511,0.003;110,325,0.019;195,233,0.021;240,14,0.78;62,159,0.005;105,268,0.001;157,438,0.005;71,20,0.87;158,76,0.012;112,33,0.95;157,443,0.002;162,380,0.06;37,91,0.012;231,15,0.74;74,17,0.43;214,544,0.018;131,15,0.87;106,289,0.34;238,579,0.13;9,20,1;118,346,0.04;158,30,1;244,76,0.008;240,0,0.019;79,19,0.002;36,82,0.016;59,20,1;185,516,0.002;19,17,1;139,387,1;201,538,0.023;73,174,0.057;220,15,0.059;89,220,0.037;15,40,0.098;152,407,0.22;155,423,0.21;158,445,0.055;149,8,0.072;217,413,0.017;54,80,0.5;105,50,0.001;179,497,0.013;25,17,0.11;147,405,0.033;46,127,0.015;151,17,0.67;37,100,0.003;149,135,0.93;236,17,1;128,14,0.74;27,17,0.45;57,15,0.49;239,587,0.012;82,15,1;239,404,0.65;177,487,0.023;37,93,0.011;87,217,0.028;157,58,0.44;90,161,0.84;49,144,1;63,161,0.001;218,547,0.001;238,17,0.039;194,533,0.95;170,284,0.4;249,606,0.61;110,17,1;20,51,1;134,15,0.69;169,14,0.81;77,17,0.94;173,32,0.002;135,372,0.01;232,28,0.055;53,24,0.024;230,17,0.99;38,108,0.001;26,62,0.2;224,566,0.08;105,273,0.001;127,364,0.005;178,17,0.96;86,11,0.004;117,35,0.064;68,165,0.057;124,357,0.61;239,76,0.004;177,17,0.64;37,84,0.046;48,17,0.92;189,21,0.85;201,362,0.18;44,20,0.98;25,57,0.47;174,480,0.021;198,17,0.59;23,56,0.067;185,503,0.013;223,558,0.012;54,152,0.004;152,15,0.2;60,30,0.08;65,164,0.41;105,261,0.002;224,83,0.005;136,74,0.75;195,43,0.002;163,102,0.13;142,15,0.17;238,584,0.037;29,35,0.008;38,17,0.86;88,17,0.8;105,258,0.002;157,431,0.02;35,80,0.001;18,49,0.001;105,255,0.003;33,17,0.25;106,294,0.018;163,453,0.21;107,0,0.75;145,17,0.13;57,153,0.11;233,28,0.004;202,144,1;196,17,0.68;142,85,0.057;155,425,0.091;240,43,0.07;99,227,0.81;13,32,0.021;242,35,0.005;32,32,0.11;136,43,0.002;158,288,0.018;253,538,0.006;50,17,0.17;66,17,0.94;107,319,0.014;153,413,0.079;241,32,0.005;218,17,0.86;118,164,0.013;102,32,0.95;163,457,0.014;182,0,0.11;79,21,0.013;22,17,1;47,129,0.029;0,1,0.43;201,180,0.02;210,17,0.9;184,17,0.31;223,553,0.087;207,15,0.94;106,302,0.004;11,31,0.61;2,12,0.005;75,17,0.99;196,535,0.078;78,17,0.7;170,473,0.002;106,32,0.009;136,374,0.012;253,612,0.065;21,15,0.38;105,232,0.07;80,15,0.77;87,213,0.11;58,33,0.016;105,43,0.032;79,33,0.017;157,427,0.11;107,314,0.05;155,35,0.01;241,11,0.003;170,468,0.012;94,20,0.93;11,30,0.97;224,568,0.017;216,464,0.8;86,17,0.64;134,17,0.18;201,359,0.079;145,395,0.004;157,44,0.001;141,15,0.98;201,66,0.082;47,134,0.003;136,289,0.012;148,15,0.99;145,20,0.83;130,366,0.86;139,17,0.88;179,17,0.33;116,17,0.45;21,53,0.1;94,223,0.07;158,17,0.9;118,348,0.015;164,463,0.95;234,17,0.98;83,15,0.63;116,14,1;226,213,0.17;205,541,0.013;252,608,0.31;63,17,0.86;114,340,0.008;176,62,0.016;37,90,0.013;112,328,0.017;21,30,0.55;140,388,0.73;239,159,0.024;185,513,0.002;120,65,0.05;138,384,0.01;157,437,0.008;179,35,0.001;212,17,0.033;219,365,0.001;239,109,0.013;253,66,0.002;89,10,0.001;247,20,0.82;105,180,0.41;153,370,0.026;50,74,0.83;179,51,0.006;232,520,0.004;105,17,0.19;105,241,0.013;147,228,0.63;142,389,0.003;205,19,0.17;112,331,0.009;185,519,0.001;249,15,0.49;105,259,0.002;215,30,0.9;174,17,0.5;163,17,0.53;37,95,0.007;136,17,0.21;242,142,0.003;2,10,1;177,486,0.029;185,505,0.007;26,20,0.61;154,48,0.64;201,413,0.044;223,17,0.69;183,15,0.89;87,214,0.05;143,17,0.72;176,20,0.73;218,186,0.003;27,64,0.99;105,244,0.012;105,234,0.05;157,433,0.013;224,564,0.24;79,189,0.011;15,29,0.89;85,27,0.07;54,149,0.023;112,15,0.063;144,15,0.57;101,17,0.004;138,381,0.02;105,45,0.004;242,52,0.002;167,222,0.18;96,225,0.05;85,201,0.022;219,550,0.005;111,109,0.03;170,474,0.001;85,28,0.009;197,35,0.003;245,15,0.5;238,583,0.038;113,339,0.95;111,17,0.85;117,52,0.72;138,377,0.059;72,170,0.18;195,238,0.002;84,198,0.29;86,204,0.06;146,399,0.3;105,238,0.028;170,476,0.001;195,17,0.93;126,360,0.14;170,0,0.007;77,182,0.39;233,3,0.09;47,7,0.006;158,448,0.014;14,37,0.012;219,336,0.041;185,514,0.002;103,35,0.025;67,20,0.78;125,15,0.004;54,151,0.006;220,14,0.8;105,262,0.002;14,38,0.004;241,250,0.002;61,76,0.23;170,466,0.091;27,37,0.12;138,386,0.008;60,20,0.039;136,295,0.001;162,14,0.002;79,15,0.99;47,133,0.006;37,98,0.005;40,125,0.91;229,20,0.003;152,409,0.087;157,275,0.005;35,79,0.63;241,44,0.007;9,17,0.07;170,250,0.001;57,157,0.002;170,281,0.002;72,172,0.013;23,15,0.35;109,324,0.11;87,102,0.009;86,35,0.91;106,308,0.001;232,76,0.93;119,353,0.6;61,14,0.001;107,320,0.012;112,333,0.002;197,404,0.019;143,239,0.27;92,15,0.9;130,17,0.38;222,470,1;118,342,0.11;195,32,0.77;43,24,0.002;105,253,0.003;85,202,0.022;18,45,0.065;156,17,0.99;98,17,1;125,28,0.016;175,35,0.029;28,67,0.003;253,610,0.81;176,61,0.15;223,554,0.033;53,15,0.84;105,251,0.004;197,229,0.9;153,415,0.046;177,483,0.096;213,17,0.96;0,5,0.012;217,17,0.8;33,76,0.11;166,69,0.88;87,17,0.21;145,393,0.007;86,15,0.18;37,88,0.014;193,17,0.38;5,19,0.51;191,530,0.11;17,43,0.033;6,22,0.29;36,81,0.89;105,236,0.037;79,191,0.008;64,17,0.99;105,240,0.019;185,507,0.004;242,69,0.003;90,160,0.14;118,344,0.076;180,500,0.001;223,556,0.017;40,21,0.76;143,390,0.9;133,10,0.25;138,14,0.009;121,14,1;39,20,0.98;129,190,0.85;203,69,1;253,412,0.061;112,35,0.016;107,4,0.028;198,33,0.002;89,75,0.003;146,401,0.076;14,17,0.73;185,509,0.003;34,77,0.4;252,17,0.16;245,17,0.83;252,609,0.06;223,561,0.002;224,32,0.018;175,26,0.8;107,14,0.02;180,21,0.96;105,266,0.001;104,230,1;38,35,0.019;196,20,0.12;37,102,0.001;198,38,0.87;74,176,0.32;100,144,1;154,419,0.064;63,35,0.004;200,176,0.004;152,14,0.62;14,35,0.97;32,17,0.019;132,17,0.023;105,269,0.001;105,264,0.001;222,0,0.008;134,369,0.9;200,164,0.78;238,581,0.054;143,234,0.052;185,518,0.002;231,573,0.9;163,56,0.13;197,17,0.26;120,10,0.92;105,58,0.006;173,17,0.14;57,155,0.04;127,363,0.026;159,15,0.96;29,17,0.08;185,521,0.001;253,613,0.053;25,60,0.039;223,80,0.9;79,17,0.39;78,184,0.94;153,418,0.024;157,240,0.022;157,440,0.004;106,306,0.001;239,51,0.008;241,46,0.005;177,492,0.004;47,32,0.9;197,159,0.009;86,20,0.06;106,304,0.003;211,15,1;86,33,0.07;65,15,0.021;155,67,0.75;60,31,0.81;248,142,0.86;238,152,0.021;117,8,0.64;107,316,0.039;158,447,0.036;45,14,0.17;105,245,0.011;170,1,0.15;171,478,0.74;105,49,0.001;157,428,0.033;251,14,0.74;106,295,0.016;194,364,0.27;51,145,0.003;106,290,0.12;136,32,0.17;182,14,0.89;118,349,0.008;15,42,0.002;163,455,0.067;73,52,0.3;242,32,0.007;157,434,0.012;133,12,0.67;105,247,0.006;177,20,0.31;80,32,0.025;47,131,0.019;43,126,0.49;104,160,0.007","dropped":149};
+const PLANTED_K=2;
+let REALG=null;
+function buildReal(){
+  if(REALG)return REALG;
+  const cc=REAL.c.split(" "),lc=REAL.l.split(" "),NC=cc.length,N=NC+lc.length;
+  const eu=[],ev=[],ew=[];
+  for(const t of REAL.e.split(";")){const [a,b,x]=t.split(",");eu.push(+a);ev.push(NC+ +b);ew.push(+x);}
+  const E=eu.length,deg=new Int32Array(N),str=new Float64Array(N);
+  for(let e=0;e<E;e++){deg[eu[e]]++;deg[ev[e]]++;str[eu[e]]+=ew[e];str[ev[e]]+=ew[e];}
+  const st=new Int32Array(N+1);for(let i=0;i<N;i++)st[i+1]=st[i]+deg[i];
+  const nb=new Int32Array(2*E),w=new Float64Array(2*E),pos=st.slice(0,N);
+  for(let e=0;e<E;e++){w[pos[eu[e]]]=ew[e];nb[pos[eu[e]]++]=ev[e];w[pos[ev[e]]]=ew[e];nb[pos[ev[e]]++]=eu[e];}
+  const a0=new Float64Array(N),a1=new Float64Array(N),type=[];let tm=0;
+  for(let i=0;i<N;i++){type.push(i<NC?0:1);if(i<NC)a0[i]=str[i];else a1[i]=str[i];tm+=str[i];}
+  const x=new Float32Array(N),y=new Float32Array(N);
+  for(let i=0;i<N;i++){x[i]=i<NC?0.22:0.78;y[i]=i<NC?0.03+0.94*i/(NC-1):0.03+0.94*(i-NC)/(N-NC-1);}
+  REALG={real:true,N,NL:NC,E,type,codes:cc.concat(lc),plant:new Int8Array(N).fill(-1),deg,st,nb,w,ew,a0,a1,twoM:tm,eu,ev,x,y,n:N};
+  return REALG;
+}
+function bandLayout(best){
+  if(best.layout)return best.layout;
+  const K=best.K,nc=new Int32Array(K),nl=new Int32Array(K);
+  for(let i=0;i<G.N;i++){if(!G.deg[i])continue;if(G.type[i]===0)nc[best.lab[i]]++;else nl[best.lab[i]]++;}
+  const ord=[...Array(K).keys()].filter(k=>nc[k]+nl[k]>0).sort((a,b)=>(nc[b]+nl[b])-(nc[a]+nl[a]));
+  const rank=new Int32Array(K).fill(-1);ord.forEach((k,r)=>rank[k]=r);
+  const gap=1.5,start=new Float64Array(K);let tot=0;
+  for(const k of ord){start[k]=tot;tot+=Math.max(nc[k],nl[k])+gap;}
+  const x=new Float32Array(G.N),y=new Float32Array(G.N),fc=new Int32Array(K),fl=new Int32Array(K);
+  for(let i=0;i<G.N;i++){if(!G.deg[i])continue;const k=best.lab[i],isC=G.type[i]===0,cnt=isC?nc[k]:nl[k],span=Math.max(nc[k],nl[k]);
+    const j=isC?fc[k]++:fl[k]++;const slot=start[k]+(span-cnt)/2+j+0.5;
+    x[i]=isC?0.22:0.78;y[i]=0.02+0.96*slot/tot;}
+  best.layout={x,y,rank,nc,nl,ord};return best.layout;
+}
+
+function buildGraph(cfg,seed){
+  const rng=mulberry32(seed*2654435761>>>0);
+  const type=[],grp=[],plant=[];
+  cfg.L.forEach((n,g)=>{for(let i=0;i<n;i++){type.push(0);grp.push(g);plant.push(cfg.plantL[g]);}});
+  cfg.R.forEach((n,g)=>{for(let i=0;i<n;i++){type.push(1);grp.push(g);plant.push(cfg.plantR[g]);}});
+  const N=type.length, NL=cfg.L.reduce((a,b)=>a+b,0);
+  const eu=[],ev=[];
+  for(let i=0;i<NL;i++)for(let j=NL;j<N;j++){if(rng()<cfg.P[grp[i]][grp[j]]){eu.push(i);ev.push(j);}}
+  const E=eu.length, deg=new Int32Array(N);
+  for(let e=0;e<E;e++){deg[eu[e]]++;deg[ev[e]]++;}
+  const st=new Int32Array(N+1);for(let i=0;i<N;i++)st[i+1]=st[i]+deg[i];
+  const nb=new Int32Array(2*E),w=new Float64Array(2*E).fill(1),pos=st.slice(0,N);
+  for(let e=0;e<E;e++){nb[pos[eu[e]]++]=ev[e];nb[pos[ev[e]]++]=eu[e];}
+  const a0=new Float64Array(N),a1=new Float64Array(N);
+  for(let i=0;i<N;i++){if(type[i]===0)a0[i]=deg[i];else a1[i]=deg[i];}
+  // layout
+  const lr=mulberry32(seed*7+13), gauss=()=>{let u=0,v=0;while(!u)u=lr();v=lr();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+  const x=new Float32Array(N),y=new Float32Array(N);
+  for(let i=0;i<N;i++){
+    const ng=type[i]===0?cfg.L.length:cfg.R.length;
+    const cy=0.1+(grp[i]+0.5)/ng*0.8, cx=type[i]===0?0.24:0.76;
+    x[i]=Math.min(.97,Math.max(.03,cx+gauss()*0.05));
+    y[i]=Math.min(.97,Math.max(.03,cy+gauss()*0.075/ng*2));
+  }
+  return {N,NL,E,type,grp,plant:Int8Array.from(plant),deg,st,nb,w,a0,a1,twoM:2*E,eu,ev,x,y,n:N};
+}
+
+/* ---------- Louvain with NG or BB null model ---------- */
+function louvain(G,gamma,bb,rng){
+  const N=G.N;let n=N,st=G.st,nb=G.nb,w=G.w,A0=G.a0,A1=G.a1;
+  const memb=new Int32Array(N);for(let i=0;i<N;i++)memb[i]=i;
+  const inv=1/G.twoM;
+  for(let level=0;level<60;level++){
+    const comm=new Int32Array(n),T0=new Float64Array(n),T1=new Float64Array(n);
+    for(let i=0;i<n;i++){comm[i]=i;T0[i]=A0[i];T1[i]=A1[i];}
+    const order=new Int32Array(n);for(let i=0;i<n;i++)order[i]=i;
+    for(let i=n-1;i>0;i--){const j=Math.floor(rng()*(i+1));const t=order[i];order[i]=order[j];order[j]=t;}
+    const nw=new Float64Array(n).fill(-1),list=new Int32Array(n);
+    let anyMove=false;
+    for(let pass=0;pass<300;pass++){
+      let moved=0;
+      for(let k=0;k<n;k++){
+        const i=order[k],ci=comm[i];let cnt=0;
+        for(let e=st[i];e<st[i+1];e++){const j=nb[e];if(j===i)continue;const c=comm[j];if(nw[c]<0){nw[c]=0;list[cnt++]=c;}nw[c]+=w[e];}
+        const a0=A0[i],a1=A1[i],as=a0+a1;T0[ci]-=a0;T1[ci]-=a1;
+        let best=ci,bestG=(nw[ci]>0?nw[ci]:0)-gamma*inv*(bb?2*(a0*T1[ci]+a1*T0[ci]):as*(T0[ci]+T1[ci]));
+        for(let q=0;q<cnt;q++){const c=list[q];if(c===ci)continue;
+          const g=nw[c]-gamma*inv*(bb?2*(a0*T1[c]+a1*T0[c]):as*(T0[c]+T1[c]));
+          if(g>bestG+1e-10){bestG=g;best=c;}}
+        T0[best]+=a0;T1[best]+=a1;comm[i]=best;if(best!==ci)moved++;
+        for(let q=0;q<cnt;q++)nw[list[q]]=-1;
+      }
+      if(moved)anyMove=true;else break;
+    }
+    if(!anyMove)break;
+    const map=new Int32Array(n).fill(-1);let K=0;
+    for(let i=0;i<n;i++){const c=comm[i];if(map[c]<0)map[c]=K++;comm[i]=map[c];}
+    for(let v=0;v<N;v++)memb[v]=comm[memb[v]];
+    if(K===n)break;
+    const nA0=new Float64Array(K),nA1=new Float64Array(K);
+    for(let i=0;i<n;i++){nA0[comm[i]]+=A0[i];nA1[comm[i]]+=A1[i];}
+    const m=new Map();
+    for(let i=0;i<n;i++){const ci=comm[i];for(let e=st[i];e<st[i+1];e++){const key=ci*K+comm[nb[e]];m.set(key,(m.get(key)||0)+w[e]);}}
+    const cnts=new Int32Array(K+1);for(const key of m.keys())cnts[Math.floor(key/K)+1]++;
+    for(let i=0;i<K;i++)cnts[i+1]+=cnts[i];
+    const nst=cnts.slice(),p=cnts.slice(0,K),nnb=new Int32Array(m.size),nww=new Float64Array(m.size);
+    for(const [key,val] of m){const a=Math.floor(key/K),b=key-a*K;nnb[p[a]]=b;nww[p[a]++]=val;}
+    n=K;st=nst;nb=nnb;w=nww;A0=nA0;A1=nA1;
+  }
+  return memb;
+}
+function canon(memb){const N=memb.length,map=new Map(),lab=new Int32Array(N);let K=0;
+  for(let i=0;i<N;i++){let v=map.get(memb[i]);if(v===undefined){v=K++;map.set(memb[i],v);}lab[i]=v;}return{lab,K};}
+
+/* ---------- partition inconsistency (ECS, closed form for clique-induced graphs) ---------- */
+function analyze(parts,G){
+  const N=G.N,R=parts.length,cmap=new Map();
+  for(const p of parts){const key=p.lab.join(",");const c=cmap.get(key);if(c)c.count++;else cmap.set(key,{lab:p.lab,K:p.K,count:1});}
+  const cf=[...cmap.values()];
+  for(const c of cf){c.p=c.count/R;const s=new Int32Array(c.K),live=new Uint8Array(c.K);
+    for(let i=0;i<N;i++){s[c.lab[i]]++;if(G.deg[i]>0)live[c.lab[i]]=1;}
+    c.sizes=s;c.nc=live.reduce((a,b)=>a+b,0);}
+  const acc=new Float64Array(N);let tot=0;
+  for(let a=0;a<cf.length;a++){
+    const A=cf[a],pp=A.p*A.p;tot+=pp;for(let i=0;i<N;i++)acc[i]+=pp;
+    for(let b=a+1;b<cf.length;b++){
+      const B=cf[b],KB=B.K,ov=new Map();
+      for(let i=0;i<N;i++){const k=A.lab[i]*KB+B.lab[i];ov.set(k,(ov.get(k)||0)+1);}
+      const f=2*A.p*B.p;let S=0;
+      for(let i=0;i<N;i++){const la=A.lab[i],lb=B.lab[i],I=ov.get(la*KB+lb),sa=A.sizes[la],sb=B.sizes[lb];
+        const si=1-0.5*(I*Math.abs(1/sa-1/sb)+2-I/sa-I/sb);S+=si;acc[i]+=f*si;}
+      tot+=f*S/N;
+    }
+  }
+  let best=cf[0];for(const c of cf)if(c.count>best.count)best=c;
+  let ncAvg=0,exact=0;for(const c of cf){ncAvg+=c.p*c.nc;if(c.nc===PLANTED_K)exact+=c.p;}
+  const local=new Float32Array(N);for(let i=0;i<N;i++)local[i]=1/acc[i];
+  return{omega:1/tot,nc:ncAvg,exact,unique:cf.length,best,local};
+}
+
+/* ---------- state ---------- */
+let preset="3vs3",G=null,gammas=[],res={ng:[],bb:[]},token=0,selIdx=0,stale=false;
+const ids=["pin","pout","pmid","gsize","runs"];
+function params(){return{in:+$("#pin").value,out:+$("#pout").value,mid:+$("#pmid").value,s:+$("#gsize").value,runs:+$("#runs").value,
+  gmin:Math.max(0.05,+$("#gmin").value||0.3),gmax:Math.max(0.1,+$("#gmax").value||1),seed:Math.max(1,Math.floor(+$("#seed").value||1))};}
+function showVals(){$("#pinv").textContent=(+$("#pin").value).toFixed(2);$("#poutv").textContent=(+$("#pout").value).toFixed(3);
+  $("#pmidv").textContent=(+$("#pmid").value).toFixed(2);$("#gsizev").textContent=$("#gsize").value;$("#runsv").textContent=$("#runs").value;}
+function makeGammas(p){let lo=Math.min(p.gmin,p.gmax),hi=Math.max(p.gmin,p.gmax);if(hi-lo<0.1)hi=lo+0.1;
+  const steps=35,out=[];for(let k=0;k<=steps;k++)out.push(+(lo+(hi-lo)*k/steps).toFixed(4));return out;}
+function regen(){const p=params();G=PRESETS[preset].real?buildReal():buildGraph(PRESETS[preset].build(p.s,p),p.seed);}
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+/* ---------- colouring ---------- */
+const EXTRA=["#5876B8","#B5508C","#8E8A2E","#6B5CC4","#C0603F","#3E8FA8","#9A6B3F","#4F9E8A"];
+function colorMap(best){
+  if(G.real){const L=bandLayout(best),dark=css("--surface").toLowerCase()!=="#ffffff",col=new Array(best.K);
+    for(let k=0;k<best.K;k++){const r=L.rank[k];col[k]=r<0?css("--muted"):`hsl(${(r*137.508+25)%360} ${dark?62:58}% ${dark?62:44}%)`;}return col;}
+  const K=best.K,c0=new Float64Array(K),c1=new Float64Array(K);
+  for(let i=0;i<G.N;i++){if(G.plant[i]===0)c0[best.lab[i]]++;else if(G.plant[i]===1)c1[best.lab[i]]++;}
+  const argmax=(arr,ex)=>{let b=-1;for(let k=0;k<K;k++){if(k===ex)continue;if(b<0||arr[k]>arr[b])b=k;}return b;};
+  let k0=argmax(c0,-1),k1=argmax(c1,k0);const s1=c0[k0]+(k1>=0?c1[k1]:0);
+  const j1=argmax(c1,-1),j0=argmax(c0,j1);const s2=c1[j1]+(j0>=0?c0[j0]:0);
+  if(s2>s1){k0=j0;k1=j1;}
+  const col=new Array(K);let e=0;const C0=css("--c0"),C1=css("--c1"),M=css("--muted");
+  for(let k=0;k<K;k++){col[k]=k===k0?C0:k===k1?C1:(e<EXTRA.length?EXTRA[e++]:M);}
+  return col;
+}
+
+/* ---------- drawing: network ---------- */
+function drawNet(which){
+  const cv=$("#net-"+which),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+  if(!W||!H||!G)return;
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+  const ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle=css("--surface");ctx.fillRect(0,0,W,H);
+  const r=res[which][selIdx],scale=Math.max(.7,Math.min(1.3,W/520));
+  const col=r?colorMap(r.best):null,grey=css("--muted"),bg=css("--surface");
+  const PX=G.real&&r?bandLayout(r.best).x:G.x,PY=G.real&&r?bandLayout(r.best).y:G.y;
+  const ec=css("--edge"),alpha=Math.min(.3,Math.max(.02,120/G.E));
+  ctx.strokeStyle=`rgba(${ec},${G.real?0.12:alpha})`;ctx.lineWidth=.6;ctx.beginPath();
+  for(let e=0;e<G.E;e++){const a=G.eu[e],b=G.ev[e];if(G.real&&r&&r.best.lab[a]===r.best.lab[b])continue;ctx.moveTo(PX[a]*W,PY[a]*H);ctx.lineTo(PX[b]*W,PY[b]*H);}
+  ctx.stroke();
+  if(G.real&&r){ctx.globalAlpha=.55;ctx.lineWidth=.8;
+    for(let e=0;e<G.E;e++){const a=G.eu[e],b=G.ev[e];if(r.best.lab[a]!==r.best.lab[b])continue;ctx.strokeStyle=col[r.best.lab[a]];ctx.beginPath();ctx.moveTo(PX[a]*W,PY[a]*H);ctx.lineTo(PX[b]*W,PY[b]*H);ctx.stroke();}
+    ctx.globalAlpha=1;}
+  const idx=[...Array(G.N).keys()];
+  if(r)idx.sort((a,b)=>r.local[a]-r.local[b]);
+  for(const i of idx){
+    if(G.real&&!G.deg[i])continue;
+    const lo=r?r.local[i]:1,rad=G.real?(1.2+4*Math.min(1,Math.max(0,(lo-1)/0.5)))*scale:(1.7+4.6*Math.min(1,Math.max(0,(lo-1)/0.9)))*scale;
+    const px=PX[i]*W,py=PY[i]*H;
+    ctx.fillStyle=r?col[r.best.lab[i]]:grey;ctx.strokeStyle=bg;ctx.lineWidth=.7;
+    ctx.beginPath();
+    if(G.type[i]===0)ctx.arc(px,py,rad,0,Math.PI*2);else ctx.rect(px-rad,py-rad,2*rad,2*rad);
+    ctx.fill();ctx.stroke();
+  }
+  const cap=$("#cap-"+which);
+  if(r){const b=r.best;cap.textContent=`Most likely partition at γ = ${gammas[selIdx].toFixed(3)}: ${b.nc} ${b.nc===1?"community":"communities"}, seen in ${b.count} of ${Math.round(b.count/b.p)} runs (${r.unique} distinct partitions).`;}
+  else cap.textContent=G?`${G.N} nodes, ${G.E} edges. Run the sweep to colour communities.`:"";
+  const mem=$("#mem-"+which);
+  if(G.real&&r){const L=bandLayout(r.best),lists=L.ord.slice(0,4).map(k=>({k,c:[],l:[]}));const byK=new Map(lists.map(o=>[o.k,o]));
+    for(let i=0;i<G.N;i++){if(!G.deg[i])continue;const o=byK.get(r.best.lab[i]);if(!o)continue;(G.type[i]===0?o.c:o.l).push(G.codes[i]);}
+    const cut=(a,n)=>a.length>n?a.slice(0,n).join(" ")+` +${a.length-n}`:a.join(" ");
+    mem.innerHTML="Largest communities (countries in capitals, languages in lower case):"+lists.map(o=>`<div><b style="color:${col[o.k]}">■</b> ${cut(o.c,10)} | ${cut(o.l,8)}</div>`).join("");}
+  else mem.innerHTML="";
+}
+
+/* ---------- drawing: charts ---------- */
+function niceStep(range,target){const raw=range/target,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p;return (f<1.5?1:f<3?2:f<7?5:10)*p;}
+const REAL_OMEGA=1.02;
+function okAt(r){return G&&G.real?(r.omega<=REAL_OMEGA&&r.nc>1):r.exact>=0.9;}
+function jumpOf(arr){let best=null;for(let k=1;k<arr.length;k++){if(!arr[k]||!arr[k-1]||gammas[k-1]<1)continue;const d=arr[k].nc-arr[k-1].nc;if(!best||d>best.d)best={d,g:(gammas[k]+gammas[k-1])/2,from:arr[k-1].nc,to:arr[k].nc};}return best;}
+function windowOf(arr){let best=null,cur=null;
+  for(let k=0;k<arr.length;k++){if(arr[k]&&okAt(arr[k])){if(!cur)cur={a:k,b:k};else cur.b=k;if(!best||cur.b-cur.a>best.b-best.a)best={...cur};}else cur=null;}
+  if(!best)return null;let om=0;for(let k=best.a;k<=best.b;k++)om+=arr[k].omega;
+  return{a:best.a,b:best.b,g0:gammas[best.a],g1:gammas[best.b],width:gammas[best.b]-gammas[best.a],omega:om/(best.b-best.a+1)};}
+function ranges(){let om=1.2,nm=3;for(const k of["ng","bb"])for(const r of res[k])if(r){om=Math.max(om,r.omega);nm=Math.max(nm,r.nc);}
+  return{om:1+(om-1)*1.08,nm:Math.ceil(nm)};}
+const CW=560,CH=300,ML=46,MR=46,MT=14,MB=40;
+function drawChart(which){
+  const svg=$("#chart-"+which),arr=res[which],rg=ranges(),C={o:css("--omega"),n:css("--nc"),rule:css("--rule"),ink:css("--ink"),band:css("--band")};
+  const g0=gammas[0],g1=gammas[gammas.length-1];
+  const X=g=>ML+(g-g0)/(g1-g0)*(CW-ML-MR),YO=o=>MT+(1-(o-1)/(rg.om-1))*(CH-MT-MB),YN=v=>MT+(1-(v-1)/(rg.nm-1))*(CH-MT-MB);
+  let s="";
+  const win=windowOf(arr);
+  if(win){const dx=(X(g1)-X(g0))/(gammas.length-1)/2;s+=`<rect x="${X(win.g0)-dx}" y="${MT}" width="${X(win.g1)-X(win.g0)+2*dx}" height="${CH-MT-MB}" fill="${C.band}"/>`;}
+  const gs=niceStep(g1-g0,6);for(let g=Math.ceil(g0/gs)*gs;g<=g1+1e-9;g+=gs){const x=X(g);s+=`<line x1="${x}" x2="${x}" y1="${CH-MB}" y2="${CH-MB+4}" stroke="${C.ink}"/><text x="${x}" y="${CH-MB+17}" text-anchor="middle">${(+g.toFixed(3))}</text>`;}
+  const os=niceStep(rg.om-1,5);for(let o=1;o<=rg.om+1e-9;o+=os){const y=YO(o);s+=`<line x1="${ML}" x2="${CW-MR}" y1="${y}" y2="${y}" stroke="${C.rule}" stroke-width=".6"/><text x="${ML-6}" y="${y+4}" text-anchor="end" style="fill:${C.o}">${(+o.toFixed(2))}</text>`;}
+  const ns=Math.max(1,niceStep(rg.nm-1,5));for(let v=Math.max(1,Math.ceil(1/ns)*ns);v<=rg.nm+1e-9;v+=ns){s+=`<text x="${CW-MR+6}" y="${YN(v)+4}" style="fill:${C.n}">${Math.round(v)}</text>`;}
+  if(!G.real)s+=`<line x1="${ML}" x2="${CW-MR}" y1="${YN(PLANTED_K)}" y2="${YN(PLANTED_K)}" stroke="${C.n}" stroke-dasharray="4 3" stroke-width="1"/>`;
+  s+=`<rect x="${ML}" y="${MT}" width="${CW-ML-MR}" height="${CH-MT-MB}" fill="none" stroke="${C.ink}" stroke-width=".8"/>`;
+  s+=`<text x="${(ML+CW-MR)/2}" y="${CH-6}" text-anchor="middle" style="font-style:italic;font-family:var(--serif);font-size:14px">resolution γ</text>`;
+  s+=`<text transform="translate(12 ${(MT+CH-MB)/2}) rotate(-90)" text-anchor="middle" style="fill:${C.o};font-family:var(--serif);font-size:14px">Ω</text>`;
+  s+=`<text transform="translate(${CW-8} ${(MT+CH-MB)/2}) rotate(90)" text-anchor="middle" style="fill:${C.n};font-size:12px">communities</text>`;
+  if(arr[selIdx]||arr.length){const x=X(gammas[selIdx]);s+=`<line x1="${x}" x2="${x}" y1="${MT}" y2="${CH-MB}" stroke="${C.ink}" stroke-width="1" opacity=".55"/>`;}
+  for(let k=0;k<arr.length;k++){const r=arr[k];if(!r)continue;const x=X(gammas[k]);
+    s+=`<circle cx="${x}" cy="${YN(r.nc)}" r="3.4" fill="none" stroke="${C.n}" stroke-width="1.4"/>`;
+    s+=`<rect x="${x-3.4}" y="${YO(r.omega)-3.4}" width="6.8" height="6.8" fill="none" stroke="${C.o}" stroke-width="1.4"/>`;}
+  if(!arr.length)s+=`<text x="${(ML+CW-MR)/2}" y="${(MT+CH-MB)/2}" text-anchor="middle">Run the sweep to plot Ω and the community count</text>`;
+  svg.innerHTML=s;
+  const dl=$("#stats-"+which),r=arr[selIdx];
+  let h="";
+  if(G.real){const j=jumpOf(arr);
+    h+=`<dt>Longest stretch with Ω ≤ ${REAL_OMEGA}</dt><dd>${win?`γ ${win.g0.toFixed(2)} to ${win.g1.toFixed(2)}, width ${win.width.toFixed(2)}`:(arr.length?"none found":"not run")}</dd>`;
+    h+=`<dt>Sharpest jump in count (γ ≥ 1)</dt><dd>${j?`+${j.d.toFixed(0)} communities near γ ≈ ${j.g.toFixed(2)} (${j.from.toFixed(0)} to ${j.to.toFixed(0)})`:"–"}</dd>`;
+    h+=`<dt>At selected γ</dt><dd>${r?`Ω = ${r.omega.toFixed(3)}, ${r.nc.toFixed(1)} communities`:"–"}</dd>`;
+    dl.innerHTML=h;return;}
+  h+=`<dt>Planted-split window</dt><dd>${win?`γ ${win.g0.toFixed(2)} to ${win.g1.toFixed(2)}, width ${win.width.toFixed(2)}`:(arr.length?"none found":"not run")}</dd>`;
+  h+=`<dt>Mean Ω in window</dt><dd>${win?win.omega.toFixed(3):"–"}</dd>`;
+  h+=`<dt>At selected γ</dt><dd>${r?`Ω = ${r.omega.toFixed(3)}, ${r.nc.toFixed(2)} communities, ${Math.round(r.exact*100)}% of runs find 2`:"–"}</dd>`;
+  dl.innerHTML=h;
+}
+function verdict(){
+  const el=$("#verdict");if(!res.ng.length){el.textContent="";return;}
+  const done=res.ng.filter(Boolean).length===gammas.length&&res.bb.filter(Boolean).length===gammas.length;
+  if(!done){el.textContent="Sweeping resolutions…";return;}
+  const a=windowOf(res.ng),b=windowOf(res.bb);
+  if(G.real){const ja=jumpOf(res.ng),jb=jumpOf(res.bb),wa=a?a.width:0,wb=b?b.width:0;
+    let t=wb>wa*1.05?`The bipartite null model stays at low inconsistency (Ω ≤ ${REAL_OMEGA}) over a longer stretch of γ (${wb.toFixed(2)} vs ${wa.toFixed(2)}).`
+      :wa>wb*1.05?`Here Newman–Girvan holds Ω ≤ ${REAL_OMEGA} over the longer stretch of γ (${wa.toFixed(2)} vs ${wb.toFixed(2)}).`
+      :`Both null models hold Ω ≤ ${REAL_OMEGA} over similar stretches of γ (${wa.toFixed(2)} vs ${wb.toFixed(2)}).`;
+    if(jb&&ja)t+=` Its sharpest change is a jump of ${jb.d.toFixed(0)} communities near γ ≈ ${jb.g.toFixed(1)}, against ${ja.d.toFixed(0)} for Newman–Girvan.`;
+    el.textContent=t;return;}
+  if(!a&&!b)el.textContent="Neither null model recovers the planted two communities reliably at any γ in this range. Try widening the γ range or strengthening p_in.";
+  else if(!a)el.textContent=`Only the bipartite null model recovers the planted split reliably, over a γ window of width ${b.width.toFixed(2)}.`;
+  else if(!b)el.textContent=`Only the Newman–Girvan null model recovers the planted split reliably here, over a γ window of width ${a.width.toFixed(2)}.`;
+  else{const ra=b.width/Math.max(a.width,1e-9);
+    el.textContent=ra>1.05?`The bipartite null model keeps the planted split over a γ window ${ra.toFixed(1)}× as wide as Newman–Girvan (${b.width.toFixed(2)} vs ${a.width.toFixed(2)}).`
+      :ra<0.95?`Here Newman–Girvan holds the planted split over the wider window (${a.width.toFixed(2)} vs ${b.width.toFixed(2)}).`
+      :`Both null models hold the planted split over similar γ windows (${a.width.toFixed(2)} vs ${b.width.toFixed(2)}).`;}
+}
+function redraw(){$("#gselv").textContent="γ = "+(gammas[selIdx]??0).toFixed(3);for(const w of["ng","bb"]){drawNet(w);drawChart(w);}verdict();}
+
+/* ---------- sweep ---------- */
+async function run(){
+  const my=++token,p=params();regen();gammas=makeGammas(p);res={ng:[],bb:[]};
+  const tg=G.real?4.4:0.65,target=gammas.reduce((b,g,k)=>Math.abs(g-tg)<Math.abs(gammas[b]-tg)?k:b,0);
+  selIdx=target;$("#gsel").max=gammas.length-1;$("#gsel").value=selIdx;
+  stale=false;$("#run").classList.remove("stale");
+  const t0=performance.now();redraw();
+  for(let k=0;k<gammas.length;k++){
+    for(const which of["ng","bb"]){
+      const parts=[];
+      for(let r=0;r<p.runs;r++){const rng=mulberry32((p.seed*1000003+k*9176+r*131+(which==="bb"?77777:0))>>>0);parts.push(canon(louvain(G,gammas[k],which==="bb",rng)));}
+      res[which][k]=analyze(parts,G);
+    }
+    $("#bar").style.width=((k+1)/gammas.length*100)+"%";
+    $("#status").textContent=`γ ${k+1} of ${gammas.length}, ${(k+1)*p.runs*2} Louvain runs`;
+    for(const w of["ng","bb"])drawChart(w);
+    if(k===selIdx)for(const w of["ng","bb"])drawNet(w);
+    await new Promise(r=>setTimeout(r,0));
+    if(my!==token)return;
+  }
+  $("#status").textContent=`Done: ${gammas.length*p.runs*2} runs in ${((performance.now()-t0)/1000).toFixed(1)} s on ${G.N} nodes, ${G.E} edges`;
+  redraw();
+}
+function markStale(){stale=true;$("#run").classList.add("stale");$("#status").textContent="Settings changed. Run the sweep to update.";}
+
+/* ---------- events ---------- */
+document.querySelectorAll(".pbtn").forEach(b=>b.addEventListener("click",()=>{
+  const wasReal=!!PRESETS[preset].real;preset=b.dataset.p;const isReal=!!PRESETS[preset].real;
+  document.querySelectorAll(".pbtn").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+  if(isReal!==wasReal){$("#gmin").value=isReal?"0.1":"0.3";$("#gmax").value=isReal?"8":"1.0";}
+  $(".controls").classList.toggle("real",isReal);document.body.classList.toggle("real",isReal);
+  $("#bandlbl").textContent=isReal?`Longest γ stretch with Ω ≤ ${REAL_OMEGA} (no ground truth)`:"γ window where ≥ 90% of runs find the planted 2 communities";
+  $("#pdesc").textContent=PRESETS[preset].desc;run();}));
+ids.forEach(id=>$("#"+id).addEventListener("input",()=>{showVals();markStale();}));
+["gmin","gmax","seed"].forEach(id=>$("#"+id).addEventListener("change",markStale));
+$("#run").addEventListener("click",run);
+$("#gsel").addEventListener("input",e=>{selIdx=+e.target.value;redraw();});
+function chartPick(e){const svg=e.currentTarget,rc=svg.getBoundingClientRect(),x=(e.clientX-rc.left)/rc.width*CW;
+  const f=(x-ML)/(CW-ML-MR);const k=Math.round(Math.min(1,Math.max(0,f))*(gammas.length-1));
+  if(k!==selIdx){selIdx=k;$("#gsel").value=k;redraw();}}
+for(const w of["ng","bb"]){const s=$("#chart-"+w);let down=false;
+  s.addEventListener("pointerdown",e=>{down=true;s.setPointerCapture(e.pointerId);chartPick(e);});
+  s.addEventListener("pointermove",e=>{if(down)chartPick(e);});
+  s.addEventListener("pointerup",()=>down=false);}
+let rt;new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(()=>{drawNet("ng");drawNet("bb");},60);}).observe($(".pair"));
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",redraw);
+
+showVals();$("#pdesc").textContent=PRESETS[preset].desc;
+run();
+})();
+</script>
+</body>
+</html>
