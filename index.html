@@ -12,7 +12,7 @@
   function effective(){return saved()||(sys&&sys.matches?'dark':'light')}
   function apply(){root.setAttribute('data-theme',effective());root.style.colorScheme=effective()}
   apply();
-  // Pages listen for OS colour-scheme changes to redraw their canvases; make those
+  // Pages listen for OS color-scheme changes to redraw their canvases; make those
   // listeners (and .matches checks) follow the chosen theme instead of the OS alone.
   if(nativeMM){
     window.matchMedia=function(q){
@@ -71,6 +71,7 @@
 @media print{#theme-toggle{display:none}}
 </style>
 <!-- theme-toggle:end -->
+
 
 
 
@@ -221,7 +222,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
   <section class="panel" aria-labelledby="h-ng">
     <h2 id="h-ng">Newman–Girvan null model</h2>
     <div class="eq"><i>P</i><sub>ij</sub> = <i>k</i><sub>i</sub><i>k</i><sub>j</sub> / 2<i>m</i> for every pair</div>
-    <canvas class="net" id="net-ng" aria-label="Network coloured by most likely NG partition"></canvas>
+    <canvas class="net" id="net-ng" aria-label="Network colored by most likely NG partition"></canvas>
     <div class="netcap" id="cap-ng"></div>
     <div class="members" id="mem-ng"></div>
     <svg class="chart" id="chart-ng" viewBox="0 0 560 300" role="img" aria-label="Partition inconsistency and community count against gamma, NG"></svg>
@@ -230,7 +231,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
   <section class="panel" aria-labelledby="h-bb">
     <h2 id="h-bb">Barber (bipartite) null model <sup style="font-size:13px;font-weight:400">[2]</sup></h2>
     <div class="eq"><i>P</i><sub>ij</sub> = <i>k</i><sub>i</sub><i>k</i><sub>j</sub> / <i>m</i> across types, 0 within a type</div>
-    <canvas class="net" id="net-bb" aria-label="Network coloured by most likely BB partition"></canvas>
+    <canvas class="net" id="net-bb" aria-label="Network colored by most likely BB partition"></canvas>
     <div class="netcap" id="cap-bb"></div>
     <div class="members" id="mem-bb"></div>
     <svg class="chart" id="chart-bb" viewBox="0 0 560 300" role="img" aria-label="Partition inconsistency and community count against gamma, BB"></svg>
@@ -249,10 +250,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
   <div>
     <h3>What the experiment measures</h3>
     <p>Each network has two node types (circles and squares) split into vertically stacked groups. The top and bottom groups of opposite types are densely linked, forming the two planted communities. A middle group links evenly to everything, so its nodes have no true home and should look unstable.</p>
-    <p>At every <span class="math">γ</span> the Louvain search runs repeatedly from a random node order. Identical runs give <span class="math">Ω = 1</span>; <span class="math">C</span> equally likely, unrelated partitions give <span class="math">Ω = C</span>. Similarity between partitions uses element-centric similarity, whose personalised-PageRank form has a closed form for clique-induced graphs, so it is computed exactly here.</p>
+    <p>At every <span class="math">γ</span> the Louvain search runs repeatedly from a random node order. Identical runs give <span class="math">Ω = 1</span>; <span class="math">C</span> equally likely, unrelated partitions give <span class="math">Ω = C</span>. Similarity between partitions uses element-centric similarity, whose personalized-PageRank form has a closed form for clique-induced graphs, so it is computed exactly here.</p>
     <p>In the language–country network there is no ground truth, so the shaded band marks the longest stretch of <span class="math">γ</span> with <span class="math">Ω ≤ 1.02</span>. Look near <span class="math">γ ≈ 4</span>: with the bipartite null model the community count jumps from about 90 to about 130 and then holds steady at low inconsistency, while Newman–Girvan climbs gradually, as in Fig. 5 of the paper.</p>
     <p>Both null models can find the planted split if you pick <span class="math">γ</span> carefully. The paper’s point is that the bipartite-aware term holds that split over a wider range of <span class="math">γ</span>, so the result depends less on a knob you would have to guess on real data. Try raising <span class="math">p</span><sub>mid</sub> or lowering <span class="math">p</span><sub>in</sub> to see where each model breaks.</p>
-    <p style="font-family:var(--sans);font-size:13px;color:var(--muted)">Notes: the BB term uses Barber’s normalisation, <i>k</i><sub>i</sub><i>k</i><sub>j</sub>/<i>m</i> on cross-type pairs, so both null models expect the same total number of edges and their γ axes line up, as in the paper’s figures. Louvain here is a plain JavaScript implementation, not GenLouvain, so exact γ positions differ slightly from the published figures. The language–country network is weighted by the share of each country’s population using each language; its 149 zero-weight edges carry no weight, so they are left out, which does not change modularity. The paper’s disease–gene and ecological networks are not included.</p>
+    <p style="font-family:var(--sans);font-size:13px;color:var(--muted)">Notes: the BB term uses Barber’s normalization, <i>k</i><sub>i</sub><i>k</i><sub>j</sub>/<i>m</i> on cross-type pairs, so both null models expect the same total number of edges and their γ axes line up, as in the paper’s figures. Louvain here is a plain JavaScript implementation, not GenLouvain, so exact γ positions differ slightly from the published figures. The language–country network is weighted by the share of each country’s population using each language; its 149 zero-weight edges carry no weight, so they are left out, which does not change modularity. The paper’s disease–gene and ecological networks are not included.</p>
   </div>
   <figure class="mfig" style="margin:0">
     <svg viewBox="0 0 420 230" aria-label="Block structure of the two null-model matrices">
@@ -462,7 +463,7 @@ function regen(){const p=params();G=PRESETS[preset].real?buildReal():buildGraph(
 
 function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
 
-/* ---------- colouring ---------- */
+/* ---------- coloring ---------- */
 const EXTRA=["#5876B8","#B5508C","#8E8A2E","#6B5CC4","#C0603F","#3E8FA8","#9A6B3F","#4F9E8A"];
 function colorMap(best){
   if(G.real){const L=bandLayout(best),dark=css("--surface").toLowerCase()!=="#ffffff",col=new Array(best.K);
@@ -486,7 +487,7 @@ function drawNet(which){
   const ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.fillStyle=css("--surface");ctx.fillRect(0,0,W,H);
   const r=res[which][selIdx],scale=Math.max(.7,Math.min(1.3,W/520));
-  const col=r?colorMap(r.best):null,grey=css("--muted"),bg=css("--surface");
+  const col=r?colorMap(r.best):null,gray=css("--muted"),bg=css("--surface");
   const PX=G.real&&r?bandLayout(r.best).x:G.x,PY=G.real&&r?bandLayout(r.best).y:G.y;
   const ec=css("--edge"),alpha=Math.min(.3,Math.max(.02,120/G.E));
   ctx.strokeStyle=`rgba(${ec},${G.real?0.12:alpha})`;ctx.lineWidth=.6;ctx.beginPath();
@@ -501,14 +502,14 @@ function drawNet(which){
     if(G.real&&!G.deg[i])continue;
     const lo=r?r.local[i]:1,rad=G.real?(1.2+4*Math.min(1,Math.max(0,(lo-1)/0.5)))*scale:(1.7+4.6*Math.min(1,Math.max(0,(lo-1)/0.9)))*scale;
     const px=PX[i]*W,py=PY[i]*H;
-    ctx.fillStyle=r?col[r.best.lab[i]]:grey;ctx.strokeStyle=bg;ctx.lineWidth=.7;
+    ctx.fillStyle=r?col[r.best.lab[i]]:gray;ctx.strokeStyle=bg;ctx.lineWidth=.7;
     ctx.beginPath();
     if(G.type[i]===0)ctx.arc(px,py,rad,0,Math.PI*2);else ctx.rect(px-rad,py-rad,2*rad,2*rad);
     ctx.fill();ctx.stroke();
   }
   const cap=$("#cap-"+which);
   if(r){const b=r.best;cap.textContent=`Most likely partition at γ = ${gammas[selIdx].toFixed(3)}: ${b.nc} ${b.nc===1?"community":"communities"}, seen in ${b.count} of ${Math.round(b.count/b.p)} runs (${r.unique} distinct partitions).`;}
-  else cap.textContent=G?`${G.N} nodes, ${G.E} edges. Run the sweep to colour communities.`:"";
+  else cap.textContent=G?`${G.N} nodes, ${G.E} edges. Run the sweep to color communities.`:"";
   const mem=$("#mem-"+which);
   if(G.real&&r){const L=bandLayout(r.best),lists=L.ord.slice(0,4).map(k=>({k,c:[],l:[]}));const byK=new Map(lists.map(o=>[o.k,o]));
     for(let i=0;i<G.N;i++){if(!G.deg[i])continue;const o=byK.get(r.best.lab[i]);if(!o)continue;(G.type[i]===0?o.c:o.l).push(G.codes[i]);}
